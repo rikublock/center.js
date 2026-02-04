@@ -1,42 +1,49 @@
-class CenterJS {
-  constructor(canvas) {
+export type Options = {
+  width: number;
+  height: number;
+  text: string;
+  fontColor: string;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: string;
+  fontStyle: string;
+  shape: "square" | "circle" | "rounded";
+  backgroundColor: string;
+};
+
+const defaultOptions = {
+  width: 128,
+  height: 128,
+  text: "C",
+  fontColor: "white",
+  fontFamily: "Helvetica",
+  fontSize: 64,
+  fontWeight: "400",
+  fontStyle: "normal",
+  shape: "square" as const,
+  backgroundColor: "black",
+};
+
+export class CenterJS {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private opts: Options;
+
+  constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    const ctx = this.canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Failed to obtain 2D rendering context from canvas");
+    }
+    this.ctx = ctx;
+    this.opts = defaultOptions;
   }
 
-  generate(options) {
-    this.ctx = this.canvas.getContext("2d");
-
-    /**
-     * Set defaults.
-     */
-    const defaults = {
-      canvas: document.createElement("canvas"),
-      width: 128,
-      height: 128,
-      text: "C",
-      fontColor: "white",
-      fontFamily: "Helvetica",
-      fontSize: 64,
-      fontWeight: "400",
-      fontStyle: "normal",
-      shape: "square",
-      backgroundColor: "black",
-    };
-
+  generate(options: Options): HTMLCanvasElement {
     /**
      * Override defaults with options.
      */
-    this.data = Object.assign({}, defaults, options);
-    this.width = this.data.width;
-    this.height = this.data.height;
-    this.text = this.data.text;
-    this.fontColor = this.data.fontColor;
-    this.fontFamily = this.data.fontFamily;
-    this.fontSize = this.data.fontSize;
-    this.fontWeight = this.data.fontWeight;
-    this.fontStyle = this.data.fontStyle;
-    this.shape = this.data.shape;
-    this.backgroundColor = this.data.backgroundColor;
+    this.opts = Object.assign({}, defaultOptions, options);
 
     /**
      * Set the width and height of the canvas as 2x of the desired width and
@@ -44,96 +51,108 @@ class CenterJS {
      * and height of the canvas then scale the content up by a factor of 2. This
      * will allow support for retina displays.
      */
-    this.canvas.width = 2 * this.width;
-    this.canvas.height = 2 * this.height;
-    this.canvas.style.width = this.width + "px";
-    this.canvas.style.height = this.height + "px";
+    this.canvas.width = 2 * this.opts.width;
+    this.canvas.height = 2 * this.opts.height;
+    this.canvas.style.width = this.opts.width + "px";
+    this.canvas.style.height = this.opts.height + "px";
     this.ctx.scale(2, 2);
 
     /**
      * Draw and return the canvas.
      */
-    this.drawBackground();
-    this.drawText();
+    this._drawBackground();
+    this._drawText();
+
     return this.canvas;
   }
 
-  drawBackground() {
-    switch (this.shape) {
+  private _drawBackground(): void {
+    switch (this.opts.shape) {
       case "square":
-        this.drawSquare();
+        this._drawSquare();
         break;
       case "circle":
-        this.drawCircle();
+        this._drawCircle();
         break;
       case "rounded":
-        this.drawRounded();
+        this._drawRounded();
         break;
       default:
-        this.drawSquare();
+        this._drawSquare();
         break;
     }
   }
 
-  drawSquare() {
+  private _drawSquare(): void {
     this.ctx.beginPath();
-    this.ctx.rect(0, 0, this.width, this.height);
-    this.ctx.fillStyle = this.backgroundColor;
+    this.ctx.rect(0, 0, this.opts.width, this.opts.height);
+    this.ctx.fillStyle = this.opts.backgroundColor;
     this.ctx.fill();
   }
 
-  drawCircle() {
+  private _drawCircle(): void {
     this.ctx.beginPath();
     this.ctx.arc(
-      this.width / 2,
-      this.height / 2,
-      this.height / 2,
+      this.opts.width / 2,
+      this.opts.height / 2,
+      this.opts.height / 2,
       0,
       2 * Math.PI,
-      false
+      false,
     );
-    this.ctx.fillStyle = this.backgroundColor;
+    this.ctx.fillStyle = this.opts.backgroundColor;
     this.ctx.fill();
   }
 
-  drawRounded() {
+  private _drawRounded(): void {
     this.ctx.beginPath();
-    const radius = this.height / 10;
-    this.ctx.moveTo(this.width, this.height);
-    this.ctx.arcTo(0, this.height, 0, 0, radius);
-    this.ctx.arcTo(0, 0, this.width, 0, radius);
-    this.ctx.arcTo(this.width, 0, this.width, this.height, radius);
-    this.ctx.arcTo(this.width, this.height, 0, this.height, radius);
-    this.ctx.fillStyle = this.backgroundColor;
+    const radius = this.opts.height / 10;
+    this.ctx.moveTo(this.opts.width, this.opts.height);
+    this.ctx.arcTo(0, this.opts.height, 0, 0, radius);
+    this.ctx.arcTo(0, 0, this.opts.width, 0, radius);
+    this.ctx.arcTo(
+      this.opts.width,
+      0,
+      this.opts.width,
+      this.opts.height,
+      radius,
+    );
+    this.ctx.arcTo(
+      this.opts.width,
+      this.opts.height,
+      0,
+      this.opts.height,
+      radius,
+    );
+    this.ctx.fillStyle = this.opts.backgroundColor;
     this.ctx.fill();
   }
 
-  drawText() {
-    this.ctx.fillStyle = this.fontColor;
-    this.ctx.font = this.fontString();
+  private _drawText(): void {
+    this.ctx.fillStyle = this.opts.fontColor;
+    this.ctx.font = this._fontString();
     this.ctx.textBaseline = "alphabetic";
     this.ctx.textAlign = "center";
-    const offsets = this.measureOffsets(
-      this.text,
-      this.fontFamily,
-      this.fontSize
-    );
-    const x = this.width / 2 + offsets.horizontal;
-    const y = this.height / 2 + offsets.vertical;
-    this.ctx.fillText(this.text, x, y);
+    const offsets = this._measureOffsets(this.opts.text, this.opts.fontSize);
+    const x = this.opts.width / 2 + offsets.horizontal;
+    const y = this.opts.height / 2 + offsets.vertical;
+    this.ctx.fillText(this.opts.text, x, y);
   }
 
   /**
    * Offsets are the differece between the center of the canvas and the center
    * of the text on the canvas.
    */
-  measureOffsets(text, fontFamily, fontSize) {
+  private _measureOffsets(text: string, fontSize: number) {
     /**
      * Create and setup canvas
      */
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    ctx.font = this.fontString();
+    if (!ctx) {
+      throw new Error("Failed to obtain 2D rendering context from canvas");
+    }
+    ctx.font = this._fontString();
 
     /**
      * Make sure that there is enough room on the canvas for the text. Changing
@@ -149,7 +168,7 @@ class CenterJS {
      * far off the text is from the actual center since the textBaseline and
      * textAlign are not always accurate.
      */
-    ctx.font = this.fontString();
+    ctx.font = this._fontString();
     ctx.textBaseline = "alphabetic";
     ctx.textAlign = "center";
     ctx.fillStyle = "white";
@@ -160,8 +179,8 @@ class CenterJS {
      */
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
-    let textTop;
-    let textBottom;
+    let textTop: any;
+    let textBottom: any;
     for (let y = 0; y <= canvas.height; y++) {
       for (let x = 0; x <= canvas.width; x++) {
         let r_index = 4 * (canvas.width * y + x);
@@ -184,8 +203,8 @@ class CenterJS {
     const canvasHorizontalCenterLine = canvas.height / 2;
     const textHorizontalCenterLine = (textBottom - textTop) / 2 + textTop;
 
-    let textLeft;
-    let textRight;
+    let textLeft: any;
+    let textRight: any;
     for (let x = 0; x <= canvas.width; x++) {
       for (let y = 0; y <= canvas.height; y++) {
         let r_index = 4 * (canvas.width * y + x);
@@ -214,8 +233,8 @@ class CenterJS {
     };
   }
 
-  fontString() {
-    return `${this.fontStyle} ${this.fontWeight} ${this.fontSize}px ${this.fontFamily}`;
+  private _fontString(): string {
+    return `${this.opts.fontStyle} ${this.opts.fontWeight} ${this.opts.fontSize}px ${this.opts.fontFamily}`;
   }
 }
 
